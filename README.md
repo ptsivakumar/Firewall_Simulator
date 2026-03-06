@@ -45,4 +45,11 @@ Since this tool is for Firewall Auditing, remember:
 
 Privacy: Because this tool uses PapaParse and SheetJS locally in the browser, the firewall rules you "upload" are never sent to a server. They stay in the user's browser memory.
 
+---
+
+You can directly access this page: 
+https://htmlpreview.github.io/?https://github.com/ptsivakumar/Firewall_Simulator/blob/main/index.html
+
+---
+
 *Created with focus and precision. Keep your logic sharp and your rules cleaner.*
