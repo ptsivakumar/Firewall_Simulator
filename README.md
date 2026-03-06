@@ -52,4 +52,15 @@ https://htmlpreview.github.io/?https://github.com/ptsivakumar/Firewall_Simulator
 
 ---
 
+Sample screenshots
+
+<img width="1903" height="858" alt="image" src="https://github.com/user-attachments/assets/3ab38659-a1b0-48d2-adfa-753133ab5ad2" />
+
+<img width="1857" height="769" alt="image" src="https://github.com/user-attachments/assets/ac274412-da54-441d-9f30-fce17a6d00e1" />
+
+<img width="1856" height="846" alt="image" src="https://github.com/user-attachments/assets/93dde4e9-f0e6-48fb-aa72-9fbc8e8afaa7" />
+
+<img width="1865" height="859" alt="image" src="https://github.com/user-attachments/assets/f7fbfb64-3e24-4c33-a107-4c1042f29cd1" />
+
+
 *Created with focus and precision. Keep your logic sharp and your rules cleaner.*
