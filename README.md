@@ -39,4 +39,10 @@ This tool specifically helps satisfy:
 - **ISO 27001 Control A.13.1.1**: Network management and security control.
 
 ---
+
+🛡️ A Security Note
+Since this tool is for Firewall Auditing, remember:
+
+Privacy: Because this tool uses PapaParse and SheetJS locally in the browser, the firewall rules you "upload" are never sent to a server. They stay in the user's browser memory.
+
 *Created with focus and precision. Keep your logic sharp and your rules cleaner.*
