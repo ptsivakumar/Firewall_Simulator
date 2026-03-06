@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirewallSim Pro — Rule Simulator & Audit Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #040d14;
+    --bg2: #071520;
+    --bg3: #0a1e2e;
+    --panel: #0d2035;
+    --panel2: #102540;
+    --border: #1a3a55;
+    --accent: #00c8ff;
+    --accent2: #0088bb;
+    --green: #00ff88;
+    --red: #ff3355;
+    --yellow: #ffbb00;
+    --orange: #ff7700;
+    --text: #c8e8f8;
+    --text2: #7aaabb;
+    --text3: #4a7a8a;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Rajdhani', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #051525 0%, #0a2040 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,200,255,0.08);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #0044aa);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-family: var(--head);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+  }
+
+  .header-badges {
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    border: 1px solid;
+  }
+
+  .badge-iso { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.05); }
+  .badge-pci { border-color: var(--yellow); color: var(--yellow); background: rgba(255,187,0,0.05); }
+  .badge-nist { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.05); }
+
+  /* NAV TABS */
+  nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 32px;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 14px 24px;
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN CONTENT */
+  .main { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    background: var(--panel2);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .panel-body { padding: 20px; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* INPUTS */
+  .form-group { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--bg3); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 22px;
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+  }
+  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  .btn-success {
+    background: linear-gradient(135deg, var(--green), #009955);
+    color: #000;
+  }
+  .btn-success:hover { opacity: 0.85; }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--red), #990022);
+    color: #fff;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sm { padding: 6px 14px; font-size: 11px; }
+
+  /* FILE UPLOAD */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg3);
+  }
+
+  .upload-zone:hover { border-color: var(--accent); background: rgba(0,200,255,0.03); }
+  .upload-zone.dragover { border-color: var(--green); background: rgba(0,255,136,0.05); }
+
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-text { font-family: var(--head); font-size: 15px; color: var(--text2); letter-spacing: 1px; }
+  .upload-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* RULES TABLE */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  thead th {
+    background: var(--bg3);
+    color: var(--text3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(26,58,85,0.5);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(0,200,255,0.04); }
+
+  td {
+    padding: 10px 14px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+
+  .status-allow { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .status-deny  { background: rgba(255,51,85,0.12);  color: var(--red);   border: 1px solid rgba(255,51,85,0.3); }
+  .status-log   { background: rgba(255,187,0,0.12);  color: var(--yellow);border: 1px solid rgba(255,187,0,0.3); }
+
+  /* RESULT BOX */
+  .result-box {
+    border-radius: 4px;
+    padding: 20px 24px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .result-allow { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.3); }
+  .result-deny  { background: rgba(255,51,85,0.08);  border: 1px solid rgba(255,51,85,0.3); }
+
+  .result-verdict {
+    font-family: var(--head);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 3px;
+  }
+
+  .result-allow .result-verdict { color: var(--green); }
+  .result-deny  .result-verdict { color: var(--red); }
+
+  .result-detail {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 8px;
+  }
+
+  /* STAT CARDS */
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.blue::before  { background: var(--accent); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.red::before   { background: var(--red); }
+  .stat-card.yellow::before{ background: var(--yellow); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: var(--head);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-card.blue  .stat-value { color: var(--accent); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.red   .stat-value { color: var(--red); }
+  .stat-card.yellow .stat-value { color: var(--yellow); }
+
+  .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* CHART CONTAINERS */
+  .chart-container { position: relative; height: 250px; }
+
+  /* COMPLIANCE */
+  .compliance-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(26,58,85,0.5);
+  }
+
+  .compliance-item:last-child { border-bottom: none; }
+
+  .compliance-name { font-family: var(--head); font-size: 14px; font-weight: 600; color: var(--text); }
+  .compliance-desc { font-family: var(--body); font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  .compliance-score {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-bar-wrap { width: 120px; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  .score-pct { font-family: var(--mono); font-size: 13px; min-width: 36px; text-align: right; }
+
+  /* LOG TERMINAL */
+  .terminal {
+    background: #020a0f;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    height: 240px;
+    overflow-y: auto;
+    line-height: 1.7;
+  }
+
+  .log-line { margin: 2px 0; }
+  .log-allow { color: var(--green); }
+  .log-deny  { color: var(--red); }
+  .log-info  { color: var(--accent); }
+  .log-warn  { color: var(--yellow); }
+
+  /* EXPORT BUTTONS */
+  .export-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* TEMPLATE */
+  .template-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .pulse { animation: pulse 2s infinite; }
+
+  /* SCAN LINE EFFECT */
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.15;
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  @keyframes scan {
+    0%   { top: 0; }
+    100% { top: 100vh; }
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .gap-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+
+  .flex-1 { flex: 1; }
+  .mt-16 { margin-top: 16px; }
+  .mt-20 { margin-top: 20px; }
+
+  /* PRIORITY INDICATOR */
+  .priority-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .p-critical { background: var(--red); }
+  .p-high     { background: var(--orange); }
+  .p-medium   { background: var(--yellow); }
+  .p-low      { background: var(--green); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .tag { display: inline-block; padding: 2px 8px; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.2); border-radius: 2px; font-family: var(--mono); font-size: 10px; color: var(--accent); margin: 2px; }
+
+  .full-width { grid-column: 1 / -1; }
+
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <div>
+      <div class="logo-text">FIREWALLSIM PRO</div>
+      <div class="logo-sub">RULE SIMULATION & GOVERNANCE PLATFORM v2.1</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-iso">ISO 27001</span>
+    <span class="badge badge-pci">PCI-DSS</span>
+    <span class="badge badge-nist">NIST CSF</span>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <div class="tab active" onclick="showTab('rules')">📋 Rules</div>
+  <div class="tab" onclick="showTab('simulate')">⚡ Simulate</div>
+  <div class="tab" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('audit')">🔍 Audit Log</div>
+  <div class="tab" onclick="showTab('compliance')">✅ Compliance</div>
+  <div class="tab" onclick="showTab('reports')">📄 Reports</div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ============ RULES TAB ============ -->
+  <div id="tab-rules" class="section active">
+    <div class="grid-2" style="margin-bottom:20px">
+
+      <!-- Upload Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📁 Import Rules</span>
+        </div>
+        <div class="panel-body">
+          <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+            <div class="upload-icon">📂</div>
+            <div class="upload-text">Drop CSV / Excel file here</div>
+            <div class="upload-sub">or click to browse — .csv, .xlsx, .xls supported</div>
+          </div>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(event)">
+          <div class="mt-16">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px">EXPECTED COLUMNS:</div>
+            <div class="template-box">rule_id | priority | action | protocol | src_ip | src_port | dst_ip | dst_port | direction | description</div>
+          </div>
+          <div class="mt-16 export-row">
+            <button class="btn btn-ghost btn-sm" onclick="downloadTemplate('csv')">⬇ CSV Template</button>
+            <button class="btn btn-ghost btn-sm" onclick="downloadTemplate('xlsx')">⬇ Excel Template</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Rule Entry -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">✏️ Add Single Rule</span>
+        </div>
+        <div class="panel-body">
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Priority</label>
+              <input type="number" id="r_priority" placeholder="1-1000" value="100">
+            </div>
+            <div class="form-group flex-1">
+              <label>Action</label>
+              <select id="r_action">
+                <option value="ALLOW">ALLOW</option>
+                <option value="DENY">DENY</option>
+                <option value="LOG">LOG</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Protocol</label>
+              <select id="r_protocol">
+                <option>TCP</option><option>UDP</option><option>ICMP</option><option>ANY</option>
+              </select>
+            </div>
+          </div>
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Source IP / CIDR</label>
+              <input type="text" id="r_src_ip" placeholder="192.168.1.0/24 or ANY">
+            </div>
+            <div class="form-group" style="width:100px">
+              <label>Src Port</label>
+              <input type="text" id="r_src_port" placeholder="ANY">
+            </div>
+          </div>
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Destination IP / CIDR</label>
+              <input type="text" id="r_dst_ip" placeholder="10.0.0.0/8 or ANY">
+            </div>
+            <div class="form-group" style="width:100px">
+              <label>Dst Port</label>
+              <input type="text" id="r_dst_port" placeholder="443">
+            </div>
+          </div>
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Direction</label>
+              <select id="r_direction">
+                <option>INBOUND</option><option>OUTBOUND</option><option>BOTH</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Description</label>
+              <input type="text" id="r_desc" placeholder="Allow HTTPS traffic">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addRule()">+ ADD RULE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules Table -->
+    <div class="panel">
+      <div class="panel-header" style="justify-content:space-between">
+        <span class="panel-title">📋 Firewall Rules (<span id="ruleCount">0</span>)</span>
+        <div class="export-row">
+          <button class="btn btn-ghost btn-sm" onclick="exportRules('csv')">Export CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportRules('xlsx')">Export Excel</button>
+          <button class="btn btn-danger btn-sm" onclick="clearRules()">Clear All</button>
+        </div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div class="table-wrap">
+          <table id="rulesTable">
+            <thead>
+              <tr>
+                <th>#</th><th>Priority</th><th>Action</th><th>Protocol</th>
+                <th>Source IP</th><th>Src Port</th><th>Dest IP</th><th>Dst Port</th>
+                <th>Direction</th><th>Description</th><th>Hits</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="rulesBody">
+              <tr><td colspan="12" class="empty-state">No rules loaded. Import a file or add rules manually.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SIMULATE TAB ============ -->
+  <div id="tab-simulate" class="section">
+    <div class="grid-2">
+
+      <!-- Single Packet Test -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">⚡ Single Packet Test</span>
+        </div>
+        <div class="panel-body">
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Source IP</label>
+              <input type="text" id="t_src_ip" placeholder="192.168.1.100">
+            </div>
+            <div class="form-group" style="width:110px">
+              <label>Src Port</label>
+              <input type="text" id="t_src_port" placeholder="52341">
+            </div>
+          </div>
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Destination IP</label>
+              <input type="text" id="t_dst_ip" placeholder="10.0.0.50">
+            </div>
+            <div class="form-group" style="width:110px">
+              <label>Dst Port</label>
+              <input type="text" id="t_dst_port" placeholder="443">
+            </div>
+          </div>
+          <div class="gap-row">
+            <div class="form-group flex-1">
+              <label>Protocol</label>
+              <select id="t_protocol">
+                <option>TCP</option><option>UDP</option><option>ICMP</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Direction</label>
+              <select id="t_direction">
+                <option>INBOUND</option><option>OUTBOUND</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="simulateSingle()" style="width:100%">▶ SIMULATE PACKET</button>
+          <div class="mt-16" id="singleResult"></div>
+        </div>
+      </div>
+
+      <!-- Quick Tests -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🎯 Quick Test Scenarios</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-ghost" onclick="quickTest('https')">Test HTTPS (443 TCP)</button>
+            <button class="btn btn-ghost" onclick="quickTest('ssh')">Test SSH (22 TCP)</button>
+            <button class="btn btn-ghost" onclick="quickTest('dns')">Test DNS (53 UDP)</button>
+            <button class="btn btn-ghost" onclick="quickTest('rdp')">Test RDP (3389 TCP)</button>
+            <button class="btn btn-ghost" onclick="quickTest('ftp')">Test FTP (21 TCP)</button>
+            <button class="btn btn-ghost" onclick="quickTest('icmp')">Test ICMP Ping</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Simulation -->
+    <div class="panel mt-20">
+      <div class="panel-header" style="justify-content:space-between">
+        <span class="panel-title">📦 Bulk Simulation Results (<span id="simCount">0</span>)</span>
+        <div class="export-row">
+          <button class="btn btn-ghost btn-sm" onclick="exportSim('csv')">Export CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSim('xlsx')">Export Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSim('txt')">Export TXT</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBulkDemo()">▶ Run Demo Simulation</button>
+        </div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th><th>Src IP</th><th>Src Port</th><th>Dst IP</th><th>Dst Port</th>
+                <th>Protocol</th><th>Direction</th><th>Verdict</th><th>Matched Rule</th><th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="simBody">
+              <tr><td colspan="10" class="empty-state">Run a simulation to see results here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD TAB ============ -->
+  <div id="tab-dashboard" class="section">
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Rules</div>
+        <div class="stat-value" id="d-total-rules">0</div>
+        <div class="stat-sub">Active firewall rules</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Allow Rules</div>
+        <div class="stat-value" id="d-allow-rules">0</div>
+        <div class="stat-sub">Permitting traffic</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Deny Rules</div>
+        <div class="stat-value" id="d-deny-rules">0</div>
+        <div class="stat-sub">Blocking traffic</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="stat-card yellow">
+        <div class="stat-label">Simulations Run</div>
+        <div class="stat-value" id="d-sim-total">0</div>
+        <div class="stat-sub">Total packet tests</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Block Rate</div>
+        <div class="stat-value" id="d-block-rate">0%</div>
+        <div class="stat-sub">Packets denied</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Action Distribution</span></div>
+        <div class="panel-body">
+          <div class="chart-container"><canvas id="chartAction"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Protocol Distribution</span></div>
+        <div class="panel-body">
+          <div class="chart-container"><canvas id="chartProto"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Simulation Results</span></div>
+        <div class="panel-body">
+          <div class="chart-container"><canvas id="chartSim"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Top Hit Rules</span></div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Rule ID</th><th>Description</th><th>Action</th><th>Hits</th></tr></thead>
+              <tbody id="topRulesBody">
+                <tr><td colspan="4" class="empty-state">No simulation data</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AUDIT LOG TAB ============ -->
+  <div id="tab-audit" class="section">
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header" style="justify-content:space-between">
+        <span class="panel-title">🔍 Audit Trail — All Events</span>
+        <div class="export-row">
+          <button class="btn btn-ghost btn-sm" onclick="exportAudit('csv')">Export CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportAudit('txt')">Export TXT Log</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAudit()">Clear</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="terminal" id="auditTerminal">
+          <div class="log-line log-info">[SYSTEM] FirewallSim Pro initialized. Ready for rule import and simulation.</div>
+          <div class="log-line log-info">[SYSTEM] Compliance frameworks loaded: ISO 27001, PCI-DSS v4.0, NIST CSF 2.0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">📋 Structured Audit Records</span></div>
+      <div class="panel-body" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th><th>Event Type</th><th>Details</th><th>User</th><th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <tr><td colspan="5" class="empty-state">No audit records yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPLIANCE TAB ============ -->
+  <div id="tab-compliance" class="section">
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><span class="panel-title">✅ Regulatory Compliance Status</span></div>
+      <div class="panel-body">
+        <div id="complianceList">
+          <!-- Dynamically rendered -->
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">ISO 27001 Control Mapping</span></div>
+        <div class="panel-body">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2">
+            <div><span class="tag">A.13.1.1</span> Network Controls — Firewall rule management</div>
+            <div><span class="tag">A.13.1.2</span> Security of Network Services — Port restrictions</div>
+            <div><span class="tag">A.12.4.1</span> Event Logging — Audit trail maintained</div>
+            <div><span class="tag">A.12.4.3</span> Admin & Operator Logs — Rule changes logged</div>
+            <div><span class="tag">A.9.4.2</span> Secure Log-on — Access control rules verified</div>
+            <div><span class="tag">A.18.1.3</span> Protection of Records — Logs preserved</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">PCI-DSS v4.0 Requirements</span></div>
+        <div class="panel-body">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2">
+            <div><span class="tag">REQ 1.2</span> Firewall rules restrict inbound/outbound traffic</div>
+            <div><span class="tag">REQ 1.3</span> Direct public access to cardholder data network prohibited</div>
+            <div><span class="tag">REQ 1.4</span> Network connections between zones documented</div>
+            <div><span class="tag">REQ 10.2</span> Audit logs capture all access to system resources</div>
+            <div><span class="tag">REQ 10.3</span> Protect audit logs from modification</div>
+            <div><span class="tag">REQ 6.4</span> Public-facing components protected by firewall</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ REPORTS TAB ============ -->
+  <div id="tab-reports" class="section">
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><span class="panel-title">📄 Report Generation</span></div>
+      <div class="panel-body">
+        <div class="grid-3">
+
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:20px">
+            <div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px">📊 Executive Summary</div>
+            <div style="font-family:var(--body);font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+              High-level overview of firewall posture, rule counts, simulation results, and compliance scores. Suitable for management and board-level review.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+              <span class="tag">Rule Summary</span><span class="tag">Compliance Score</span><span class="tag">Risk Overview</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="generateReport('executive','txt')">TXT</button>
+              <button class="btn btn-primary btn-sm" onclick="generateReport('executive','csv')">CSV</button>
+            </div>
+          </div>
+
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:20px">
+            <div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--green);margin-bottom:8px">🔍 Technical Audit Report</div>
+            <div style="font-family:var(--body);font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+              Detailed rule-by-rule analysis, simulation logs, conflict detection, and full audit trail. For security team and auditors.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+              <span class="tag">All Rules</span><span class="tag">Audit Log</span><span class="tag">Conflicts</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-success btn-sm" onclick="generateReport('technical','txt')">TXT</button>
+              <button class="btn btn-success btn-sm" onclick="generateReport('technical','csv')">CSV</button>
+            </div>
+          </div>
+
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:20px">
+            <div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--yellow);margin-bottom:8px">✅ Compliance Report</div>
+            <div style="font-family:var(--body);font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+              Mapped against ISO 27001, PCI-DSS v4.0, NIST CSF 2.0. Ready to submit as audit evidence for regulatory reviews.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+              <span class="tag">ISO 27001</span><span class="tag">PCI-DSS</span><span class="tag">NIST CSF</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="generateReport('compliance','txt')">TXT</button>
+              <button class="btn btn-ghost btn-sm" onclick="generateReport('compliance','csv')">CSV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Preview -->
+    <div class="panel">
+      <div class="panel-header" style="justify-content:space-between">
+        <span class="panel-title" id="reportPreviewTitle">📄 Report Preview</span>
+        <button class="btn btn-ghost btn-sm" id="downloadReportBtn" style="display:none" onclick="downloadReportPreview()">⬇ Download</button>
+      </div>
+      <div class="panel-body">
+        <div class="terminal" id="reportPreview" style="height:400px;white-space:pre-wrap;color:var(--text2)">
+Select a report type above to generate a preview...
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end app -->
+
+<script>
+// ===================== STATE =====================
+let rules = [];
+let simResults = [];
+let auditLog = [];
+let charts = {};
+let reportContent = '';
+let reportFilename = '';
+let ruleIdCounter = 1;
+
+// ===================== SAMPLE DATA =====================
+const sampleRules = [
+  { id:'R001', priority:10,  action:'ALLOW', protocol:'TCP', src_ip:'192.168.1.0/24', src_port:'ANY', dst_ip:'ANY',          dst_port:'443', direction:'OUTBOUND', description:'Allow internal HTTPS', hits:0 },
+  { id:'R002', priority:20,  action:'ALLOW', protocol:'TCP', src_ip:'192.168.1.0/24', src_port:'ANY', dst_ip:'ANY',          dst_port:'80',  direction:'OUTBOUND', description:'Allow internal HTTP',  hits:0 },
+  { id:'R003', priority:30,  action:'ALLOW', protocol:'UDP', src_ip:'ANY',            src_port:'ANY', dst_ip:'8.8.8.8',      dst_port:'53',  direction:'OUTBOUND', description:'Allow DNS to Google',  hits:0 },
+  { id:'R004', priority:40,  action:'DENY',  protocol:'TCP', src_ip:'ANY',            src_port:'ANY', dst_ip:'ANY',          dst_port:'22',  direction:'INBOUND',  description:'Block inbound SSH',    hits:0 },
+  { id:'R005', priority:50,  action:'DENY',  protocol:'TCP', src_ip:'ANY',            src_port:'ANY', dst_ip:'ANY',          dst_port:'3389',direction:'INBOUND',  description:'Block inbound RDP',    hits:0 },
+  { id:'R006', priority:60,  action:'ALLOW', protocol:'TCP', src_ip:'10.0.1.5',       src_port:'ANY', dst_ip:'10.0.0.10',   dst_port:'5432',direction:'INBOUND',  description:'Allow DB admin access',hits:0 },
+  { id:'R007', priority:70,  action:'LOG',   protocol:'ICMP',src_ip:'ANY',            src_port:'ANY', dst_ip:'ANY',          dst_port:'ANY', direction:'BOTH',     description:'Log all ICMP',         hits:0 },
+  { id:'R008', priority:999, action:'DENY',  protocol:'ANY', src_ip:'ANY',            src_port:'ANY', dst_ip:'ANY',          dst_port:'ANY', direction:'BOTH',     description:'Default deny all',     hits:0 },
+];
+
+// Load samples on start
+window.onload = () => {
+  rules = sampleRules.map(r => ({...r}));
+  renderRules();
+  updateDashboard();
+  renderCompliance();
+  addAuditLog('SYSTEM', 'Application initialized with sample ruleset (8 rules)', 'SUCCESS');
+};
+
+// ===================== TABS =====================
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelector(`#tab-${name}`).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'dashboard') updateDashboard();
+  if (name === 'compliance') renderCompliance();
+}
+
+// ===================== CIDR MATCHING =====================
+function ipToInt(ip) {
+  return ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0;
+}
+
+function ipInCIDR(ip, cidr) {
+  if (cidr === 'ANY' || cidr === '*') return true;
+  if (!cidr.includes('/')) return ip === cidr;
+  const [net, bits] = cidr.split('/');
+  const mask = bits === '0' ? 0 : (~0 << (32 - parseInt(bits))) >>> 0;
+  return (ipToInt(ip) & mask) === (ipToInt(net) & mask);
+}
+
+function portMatch(port, rulePort) {
+  if (rulePort === 'ANY' || rulePort === '*' || rulePort === '') return true;
+  if (rulePort.includes('-')) {
+    const [lo, hi] = rulePort.split('-').map(Number);
+    return Number(port) >= lo && Number(port) <= hi;
+  }
+  return String(port) === String(rulePort);
+}
+
+function matchRule(packet, rule) {
+  if (rule.protocol !== 'ANY' && rule.protocol !== packet.protocol) return false;
+  if (!ipInCIDR(packet.src_ip, rule.src_ip)) return false;
+  if (!ipInCIDR(packet.dst_ip, rule.dst_ip)) return false;
+  if (!portMatch(packet.src_port, rule.src_port)) return false;
+  if (!portMatch(packet.dst_port, rule.dst_port)) return false;
+  if (rule.direction !== 'BOTH' && rule.direction !== packet.direction) return false;
+  return true;
+}
+
+function evaluatePacket(packet) {
+  const sorted = [...rules].sort((a, b) => a.priority - b.priority);
+  for (const rule of sorted) {
+    if (matchRule(packet, rule)) {
+      rule.hits = (rule.hits || 0) + 1;
+      return { verdict: rule.action, rule };
+    }
+  }
+  return { verdict: 'DENY', rule: null };
+}
+
+// ===================== RULES =====================
+function addRule() {
+  const rule = {
+    id: 'R' + String(ruleIdCounter++).padStart(3,'0'),
+    priority: parseInt(document.getElementById('r_priority').value) || 100,
+    action: document.getElementById('r_action').value,
+    protocol: document.getElementById('r_protocol').value,
+    src_ip: document.getElementById('r_src_ip').value || 'ANY',
+    src_port: document.getElementById('r_src_port').value || 'ANY',
+    dst_ip: document.getElementById('r_dst_ip').value || 'ANY',
+    dst_port: document.getElementById('r_dst_port').value || 'ANY',
+    direction: document.getElementById('r_direction').value,
+    description: document.getElementById('r_desc').value || '',
+    hits: 0
+  };
+  rules.push(rule);
+  rules.sort((a,b) => a.priority - b.priority);
+  renderRules();
+  addAuditLog('RULE_ADD', `Rule ${rule.id} added — ${rule.action} ${rule.protocol} ${rule.src_ip}→${rule.dst_ip}:${rule.dst_port}`, 'SUCCESS');
+}
+
+function deleteRule(id) {
+  rules = rules.filter(r => r.id !== id);
+  renderRules();
+  addAuditLog('RULE_DELETE', `Rule ${id} deleted`, 'INFO');
+}
+
+function clearRules() {
+  if (!confirm('Clear all rules?')) return;
+  rules = [];
+  renderRules();
+  addAuditLog('RULE_CLEAR', 'All rules cleared', 'WARN');
+}
+
+function renderRules() {
+  const body = document.getElementById('rulesBody');
+  document.getElementById('ruleCount').textContent = rules.length;
+  if (!rules.length) {
+    body.innerHTML = '<tr><td colspan="12" class="empty-state">No rules loaded.</td></tr>';
+    return;
+  }
+  body.innerHTML = rules.map((r, i) => `
+    <tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td style="color:var(--accent)">${r.priority}</td>
+      <td><span class="status status-${r.action.toLowerCase()}">${r.action}</span></td>
+      <td>${r.protocol}</td>
+      <td style="color:var(--text)">${r.src_ip}</td>
+      <td>${r.src_port}</td>
+      <td style="color:var(--text)">${r.dst_ip}</td>
+      <td>${r.dst_port}</td>
+      <td>${r.direction}</td>
+      <td style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.description}</td>
+      <td style="color:${r.hits>0?'var(--yellow)':'var(--text3)'}">${r.hits}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRule('${r.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+// ===================== FILE IMPORT =====================
+function dragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
+function dragLeave(e) { document.getElementById('dropZone').classList.remove('dragover'); }
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFile(e) {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+}
+
+function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true,
+      complete: r => importRows(r.data, file.name)
+    });
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      importRows(data, file.name);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function importRows(rows, filename) {
+  let added = 0;
+  rows.forEach(row => {
+    const r = {
+      id: row.rule_id || row.id || 'R' + String(ruleIdCounter++).padStart(3,'0'),
+      priority: parseInt(row.priority) || 100,
+      action: (row.action || 'DENY').toUpperCase(),
+      protocol: (row.protocol || 'ANY').toUpperCase(),
+      src_ip: row.src_ip || 'ANY',
+      src_port: row.src_port || row.source_port || 'ANY',
+      dst_ip: row.dst_ip || row.destination_ip || 'ANY',
+      dst_port: row.dst_port || row.destination_port || row.port || 'ANY',
+      direction: (row.direction || 'BOTH').toUpperCase(),
+      description: row.description || '',
+      hits: 0
+    };
+    rules.push(r);
+    added++;
+  });
+  rules.sort((a,b) => a.priority - b.priority);
+  renderRules();
+  addAuditLog('FILE_IMPORT', `Imported ${added} rules from "${filename}"`, 'SUCCESS');
+  alert(`✅ Imported ${added} rules from ${filename}`);
+}
+
+// ===================== SIMULATION =====================
+function simulateSingle() {
+  const packet = {
+    src_ip: document.getElementById('t_src_ip').value || '0.0.0.0',
+    src_port: document.getElementById('t_src_port').value || 'ANY',
+    dst_ip: document.getElementById('t_dst_ip').value || '0.0.0.0',
+    dst_port: document.getElementById('t_dst_port').value || 'ANY',
+    protocol: document.getElementById('t_protocol').value,
+    direction: document.getElementById('t_direction').value
+  };
+  const {verdict, rule} = evaluatePacket(packet);
+  const box = document.getElementById('singleResult');
+  box.className = `result-box result-${verdict.toLowerCase()}`;
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="result-verdict">${verdict === 'ALLOW' ? '✅ ALLOWED' : verdict === 'LOG' ? '📝 LOGGED' : '🚫 DENIED'}</div>
+    <div class="result-detail">
+      ${packet.src_ip}:${packet.src_port} → ${packet.dst_ip}:${packet.dst_port} [${packet.protocol}]<br>
+      Matched: <strong>${rule ? rule.id + ' — ' + rule.description : 'Default deny (no rule matched)'}</strong>
+    </div>`;
+  const ts = new Date().toISOString();
+  simResults.push({ ts, ...packet, verdict, rule_id: rule?.id || 'DEFAULT', description: rule?.description || 'Default deny' });
+  document.getElementById('simCount').textContent = simResults.length;
+  renderSimTable();
+  addAuditLog('SIMULATE', `${packet.src_ip}→${packet.dst_ip}:${packet.dst_port} [${packet.protocol}] → ${verdict}`, verdict === 'ALLOW' ? 'SUCCESS' : 'DENY');
+  renderRules();
+}
+
+function quickTest(type) {
+  const tests = {
+    https: { src_ip:'192.168.1.100', src_port:'52341', dst_ip:'142.250.1.1', dst_port:'443', protocol:'TCP', direction:'OUTBOUND' },
+    ssh:   { src_ip:'203.0.113.5',   src_port:'4321',  dst_ip:'192.168.1.10', dst_port:'22',  protocol:'TCP', direction:'INBOUND' },
+    dns:   { src_ip:'192.168.1.50',  src_port:'ANY',   dst_ip:'8.8.8.8',      dst_port:'53',  protocol:'UDP', direction:'OUTBOUND' },
+    rdp:   { src_ip:'10.10.10.5',    src_port:'ANY',   dst_ip:'192.168.2.20', dst_port:'3389',protocol:'TCP', direction:'INBOUND' },
+    ftp:   { src_ip:'ANY',           src_port:'ANY',   dst_ip:'192.168.1.5',  dst_port:'21',  protocol:'TCP', direction:'INBOUND' },
+    icmp:  { src_ip:'192.168.1.1',   src_port:'ANY',   dst_ip:'10.0.0.1',     dst_port:'ANY', protocol:'ICMP',direction:'BOTH' },
+  };
+  const p = tests[type];
+  document.getElementById('t_src_ip').value = p.src_ip;
+  document.getElementById('t_src_port').value = p.src_port;
+  document.getElementById('t_dst_ip').value = p.dst_ip;
+  document.getElementById('t_dst_port').value = p.dst_port;
+  document.getElementById('t_protocol').value = p.protocol;
+  document.getElementById('t_direction').value = p.direction;
+  simulateSingle();
+}
+
+function runBulkDemo() {
+  const packets = [
+    { src_ip:'192.168.1.10', src_port:'ANY', dst_ip:'google.com', dst_port:'443', protocol:'TCP', direction:'OUTBOUND' },
+    { src_ip:'192.168.1.20', src_port:'ANY', dst_ip:'ANY',        dst_port:'80',  protocol:'TCP', direction:'OUTBOUND' },
+    { src_ip:'203.0.113.5',  src_port:'ANY', dst_ip:'10.0.0.5',   dst_port:'22',  protocol:'TCP', direction:'INBOUND' },
+    { src_ip:'10.0.1.5',     src_port:'ANY', dst_ip:'10.0.0.10',  dst_port:'5432',protocol:'TCP', direction:'INBOUND' },
+    { src_ip:'ANY',          src_port:'ANY', dst_ip:'ANY',         dst_port:'3389',protocol:'TCP', direction:'INBOUND' },
+    { src_ip:'192.168.1.1',  src_port:'ANY', dst_ip:'8.8.8.8',    dst_port:'53',  protocol:'UDP', direction:'OUTBOUND' },
+    { src_ip:'192.168.1.1',  src_port:'ANY', dst_ip:'10.0.0.1',   dst_port:'ANY', protocol:'ICMP',direction:'BOTH' },
+    { src_ip:'172.16.0.5',   src_port:'ANY', dst_ip:'192.168.1.1',dst_port:'8080',protocol:'TCP', direction:'INBOUND' },
+  ];
+  packets.forEach(p => {
+    const {verdict, rule} = evaluatePacket(p);
+    simResults.push({ ts: new Date().toISOString(), ...p, verdict, rule_id: rule?.id||'DEFAULT', description: rule?.description||'Default deny' });
+    addAuditLog('BULK_SIM', `${p.src_ip}→${p.dst_ip}:${p.dst_port} [${p.protocol}] → ${verdict}`, verdict==='ALLOW'?'SUCCESS':'DENY');
+  });
+  document.getElementById('simCount').textContent = simResults.length;
+  renderSimTable();
+  renderRules();
+}
+
+function renderSimTable() {
+  const body = document.getElementById('simBody');
+  if (!simResults.length) { body.innerHTML = '<tr><td colspan="10" class="empty-state">No simulations yet.</td></tr>'; return; }
+  body.innerHTML = simResults.slice().reverse().map(s => `
+    <tr>
+      <td style="color:var(--text3)">${s.ts.replace('T',' ').split('.')[0]}</td>
+      <td>${s.src_ip}</td><td>${s.src_port}</td>
+      <td>${s.dst_ip}</td><td>${s.dst_port}</td>
+      <td>${s.protocol}</td><td>${s.direction}</td>
+      <td><span class="status status-${s.verdict.toLowerCase()}">${s.verdict}</span></td>
+      <td style="color:var(--accent)">${s.rule_id}</td>
+      <td style="color:var(--text3)">${s.description}</td>
+    </tr>`).join('');
+}
+
+// ===================== AUDIT LOG =====================
+function addAuditLog(type, detail, result) {
+  const ts = new Date().toISOString().replace('T',' ').split('.')[0];
+  const entry = { ts, type, detail, user: 'analyst@firewallsim', result };
+  auditLog.push(entry);
+
+  const terminal = document.getElementById('auditTerminal');
+  const div = document.createElement('div');
+  div.className = `log-line ${result==='SUCCESS'||result==='INFO'?'log-info':result==='DENY'||result==='ERROR'?'log-deny':'log-warn'}`;
+  div.textContent = `[${ts}] [${type}] ${detail}`;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+
+  const body = document.getElementById('auditTableBody');
+  if (body.querySelector('td[colspan]')) body.innerHTML = '';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td style="color:var(--text3)">${ts}</td><td><span class="tag">${type}</span></td><td style="color:var(--text2)">${detail}</td><td>analyst@firewallsim</td><td><span class="status status-${result==='SUCCESS'||result==='INFO'?'allow':result==='DENY'||result==='ERROR'?'deny':'log'}">${result}</span></td>`;
+  body.insertBefore(tr, body.firstChild);
+}
+
+function clearAudit() {
+  auditLog = [];
+  document.getElementById('auditTerminal').innerHTML = '<div class="log-line log-info">[SYSTEM] Audit log cleared.</div>';
+  document.getElementById('auditTableBody').innerHTML = '<tr><td colspan="5" class="empty-state">No records.</td></tr>';
+}
+
+// ===================== DASHBOARD =====================
+function updateDashboard() {
+  const allow = rules.filter(r => r.action === 'ALLOW').length;
+  const deny  = rules.filter(r => r.action === 'DENY').length;
+  const logR  = rules.filter(r => r.action === 'LOG').length;
+
+  document.getElementById('d-total-rules').textContent = rules.length;
+  document.getElementById('d-allow-rules').textContent = allow;
+  document.getElementById('d-deny-rules').textContent  = deny;
+  document.getElementById('d-sim-total').textContent   = simResults.length;
+
+  const denied = simResults.filter(s => s.verdict === 'DENY').length;
+  const rate = simResults.length ? Math.round(denied / simResults.length * 100) : 0;
+  document.getElementById('d-block-rate').textContent = rate + '%';
+
+  // Chart: Action distribution
+  const protos = {};
+  rules.forEach(r => { protos[r.protocol] = (protos[r.protocol]||0)+1; });
+
+  renderChart('chartAction', 'doughnut', ['ALLOW','DENY','LOG'], [allow, deny, logR],
+    ['rgba(0,255,136,0.7)','rgba(255,51,85,0.7)','rgba(255,187,0,0.7)']);
+
+  renderChart('chartProto', 'doughnut', Object.keys(protos), Object.values(protos),
+    ['rgba(0,200,255,0.7)','rgba(120,100,255,0.7)','rgba(255,120,50,0.7)','rgba(50,220,180,0.7)']);
+
+  const allowedSim = simResults.filter(s => s.verdict==='ALLOW').length;
+  const deniedSim  = simResults.filter(s => s.verdict==='DENY').length;
+  const loggedSim  = simResults.filter(s => s.verdict==='LOG').length;
+  renderChart('chartSim', 'bar', ['ALLOWED','DENIED','LOGGED'], [allowedSim, deniedSim, loggedSim],
+    ['rgba(0,255,136,0.7)','rgba(255,51,85,0.7)','rgba(255,187,0,0.7)']);
+
+  // Top hit rules
+  const sorted = [...rules].filter(r => r.hits > 0).sort((a,b) => b.hits - a.hits).slice(0,5);
+  const topBody = document.getElementById('topRulesBody');
+  topBody.innerHTML = sorted.length
+    ? sorted.map(r => `<tr><td style="color:var(--accent)">${r.id}</td><td>${r.description}</td><td><span class="status status-${r.action.toLowerCase()}">${r.action}</span></td><td style="color:var(--yellow)">${r.hits}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="empty-state">Run simulations first.</td></tr>';
+}
+
+function renderChart(id, type, labels, data, colors) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type,
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: colors.map(c=>c.replace('0.7','1')), borderWidth: 1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7aaabb', font: { family: 'Share Tech Mono', size: 11 } } } },
+      scales: type === 'bar' ? {
+        x: { ticks: { color: '#7aaabb' }, grid: { color: 'rgba(26,58,85,0.3)' } },
+        y: { ticks: { color: '#7aaabb' }, grid: { color: 'rgba(26,58,85,0.3)' } }
+      } : {}
+    }
+  });
+}
+
+// ===================== COMPLIANCE =====================
+function renderCompliance() {
+  const hasRules = rules.length > 0;
+  const hasDeny  = rules.some(r => r.action === 'DENY');
+  const hasLog   = rules.some(r => r.action === 'LOG') || auditLog.length > 0;
+  const hasDefault = rules.some(r => r.dst_ip === 'ANY' && r.action === 'DENY' && r.priority > 900);
+
+  const frameworks = [
+    { name: 'ISO 27001:2022', desc: 'Information Security Management System', score: calcScore([hasRules, hasDeny, hasLog, hasDefault, rules.length > 3]), color: '#00ff88' },
+    { name: 'PCI-DSS v4.0',   desc: 'Payment Card Industry Data Security Standard', score: calcScore([hasRules, hasDeny, hasDefault, rules.length > 2, hasLog]), color: '#ffbb00' },
+    { name: 'NIST CSF 2.0',   desc: 'National Institute of Standards & Technology', score: calcScore([hasRules, hasDeny, hasLog, rules.length > 1, hasDefault]), color: '#00c8ff' },
+    { name: 'MAS TRM',        desc: 'Monetary Authority of Singapore Technology Risk Management', score: calcScore([hasRules, hasDeny, hasLog, hasDefault, auditLog.length > 5]), color: '#ff7700' },
+  ];
+
+  document.getElementById('complianceList').innerHTML = frameworks.map(f => `
+    <div class="compliance-item">
+      <div>
+        <div class="compliance-name">${f.name}</div>
+        <div class="compliance-desc">${f.desc}</div>
+      </div>
+      <div class="compliance-score">
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${f.score}%;background:${f.color}"></div></div>
+        <div class="score-pct" style="color:${f.color}">${f.score}%</div>
+      </div>
+    </div>`).join('');
+}
+
+function calcScore(checks) {
+  return Math.round(checks.filter(Boolean).length / checks.length * 100);
+}
+
+// ===================== TEMPLATES =====================
+function downloadTemplate(fmt) {
+  const headers = ['rule_id','priority','action','protocol','src_ip','src_port','dst_ip','dst_port','direction','description'];
+  const sample  = [['R001','10','ALLOW','TCP','192.168.1.0/24','ANY','ANY','443','OUTBOUND','Allow HTTPS'],
+                   ['R002','999','DENY','ANY','ANY','ANY','ANY','ANY','BOTH','Default deny']];
+  if (fmt === 'csv') {
+    const csv = [headers.join(','), ...sample.map(r => r.join(','))].join('\n');
+    downloadBlob(csv, 'firewall_rules_template.csv', 'text/csv');
+  } else {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Rules');
+    XLSX.writeFile(wb, 'firewall_rules_template.xlsx');
+  }
+}
+
+// ===================== EXPORTS =====================
+function exportRules(fmt) {
+  const headers = ['rule_id','priority','action','protocol','src_ip','src_port','dst_ip','dst_port','direction','description','hits'];
+  const rows = rules.map(r => [r.id,r.priority,r.action,r.protocol,r.src_ip,r.src_port,r.dst_ip,r.dst_port,r.direction,r.description,r.hits]);
+  if (fmt === 'csv') {
+    downloadBlob([headers.join(','), ...rows.map(r=>r.join(','))].join('\n'), 'firewall_rules.csv', 'text/csv');
+  } else {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers,...rows]), 'Rules');
+    XLSX.writeFile(wb, 'firewall_rules.xlsx');
+  }
+  addAuditLog('EXPORT', `Rules exported as ${fmt.toUpperCase()}`, 'SUCCESS');
+}
+
+function exportSim(fmt) {
+  const headers = ['timestamp','src_ip','src_port','dst_ip','dst_port','protocol','direction','verdict','rule_id','description'];
+  const rows = simResults.map(s => [s.ts,s.src_ip,s.src_port,s.dst_ip,s.dst_port,s.protocol,s.direction,s.verdict,s.rule_id,s.description]);
+  if (fmt === 'csv') {
+    downloadBlob([headers.join(','),...rows.map(r=>r.join(','))].join('\n'), 'sim_results.csv','text/csv');
+  } else if (fmt === 'xlsx') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers,...rows]),'Simulation');
+    XLSX.writeFile(wb,'sim_results.xlsx');
+  } else {
+    let txt = 'FIREWALL SIMULATION RESULTS\n' + '='.repeat(60) + '\n\n';
+    simResults.forEach(s => { txt += `[${s.ts}] ${s.src_ip}→${s.dst_ip}:${s.dst_port} [${s.protocol}] → ${s.verdict} (Rule: ${s.rule_id})\n`; });
+    downloadBlob(txt,'sim_results.txt','text/plain');
+  }
+  addAuditLog('EXPORT', `Simulation results exported as ${fmt.toUpperCase()}`, 'SUCCESS');
+}
+
+function exportAudit(fmt) {
+  if (fmt === 'csv') {
+    const rows = auditLog.map(e => [e.ts,e.type,`"${e.detail}"`,e.user,e.result].join(','));
+    downloadBlob(['timestamp,type,detail,user,result',...rows].join('\n'),'audit_log.csv','text/csv');
+  } else {
+    let txt = auditLog.map(e => `[${e.ts}] [${e.type}] [${e.result}] ${e.detail}`).join('\n');
+    downloadBlob(txt,'audit_log.txt','text/plain');
+  }
+  addAuditLog('EXPORT','Audit log exported','SUCCESS');
+}
+
+// ===================== REPORTS =====================
+function generateReport(type, fmt) {
+  const ts = new Date().toISOString().replace('T',' ').split('.')[0];
+  const allow = rules.filter(r=>r.action==='ALLOW').length;
+  const deny  = rules.filter(r=>r.action==='DENY').length;
+  const denied = simResults.filter(s=>s.verdict==='DENY').length;
+  const rate = simResults.length ? Math.round(denied/simResults.length*100) : 0;
+
+  let content = '';
+
+  if (type === 'executive') {
+    content = `
+================================================================================
+           FIREWALLSIM PRO — EXECUTIVE SUMMARY REPORT
+================================================================================
+Generated   : ${ts}
+Prepared By : analyst@firewallsim
+Classification: CONFIDENTIAL — MANAGEMENT USE ONLY
+Reference   : FSP-RPT-${Date.now()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXECUTIVE OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This report summarises the current firewall policy configuration, simulation
+outcomes, and compliance posture as of the report generation date.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIREWALL POSTURE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total Rules Configured   : ${rules.length}
+  ALLOW Rules              : ${allow}
+  DENY Rules               : ${deny}
+  LOG Rules                : ${rules.filter(r=>r.action==='LOG').length}
+  Default Deny Rule        : ${rules.some(r=>r.priority>900&&r.action==='DENY') ? 'PRESENT ✓' : 'NOT FOUND ✗'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SIMULATION RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total Packets Simulated  : ${simResults.length}
+  Packets Allowed          : ${simResults.filter(s=>s.verdict==='ALLOW').length}
+  Packets Denied           : ${denied}
+  Block Rate               : ${rate}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLIANCE SCORES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ISO 27001:2022           : ${rules.length>0?'Partially Compliant':'Non-Compliant'}
+  PCI-DSS v4.0             : ${deny>0?'Partially Compliant':'Non-Compliant'}
+  NIST CSF 2.0             : ${auditLog.length>0?'Partially Compliant':'Non-Compliant'}
+  MAS TRM                  : ${rules.length>3?'Partially Compliant':'Non-Compliant'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Ensure a default-deny rule exists as the lowest-priority rule.
+  2. Review all ALLOW rules to confirm business justification is documented.
+  3. Enable logging on all DENY rules for audit trail completeness.
+  4. Conduct quarterly firewall rule reviews per ISO 27001 A.13.1.1.
+  5. Validate rules against current network topology.
+
+================================================================================
+END OF REPORT — CONFIDENTIAL
+================================================================================`;
+  } else if (type === 'technical') {
+    content = `
+================================================================================
+        FIREWALLSIM PRO — TECHNICAL AUDIT REPORT
+================================================================================
+Generated   : ${ts}
+Classification: RESTRICTED — SECURITY TEAM USE ONLY
+Reference   : FSP-TECH-${Date.now()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETE RULE LISTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${'ID'.padEnd(8)} ${'PRI'.padEnd(6)} ${'ACTION'.padEnd(8)} ${'PROTO'.padEnd(6)} ${'SRC_IP'.padEnd(20)} ${'DST_IP'.padEnd(20)} ${'DST_PORT'.padEnd(10)} ${'HITS'.padEnd(6)} DESCRIPTION
+${'-'.repeat(110)}
+${rules.map(r => `${r.id.padEnd(8)} ${String(r.priority).padEnd(6)} ${r.action.padEnd(8)} ${r.protocol.padEnd(6)} ${r.src_ip.padEnd(20)} ${r.dst_ip.padEnd(20)} ${r.dst_port.padEnd(10)} ${String(r.hits).padEnd(6)} ${r.description}`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SIMULATION LOG (Last ${Math.min(simResults.length,50)} Entries)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${simResults.slice(-50).map(s => `[${s.ts}] ${s.src_ip}:${s.src_port} → ${s.dst_ip}:${s.dst_port} [${s.protocol}/${s.direction}] → ${s.verdict} (${s.rule_id})`).join('\n') || 'No simulations recorded.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUDIT TRAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${auditLog.map(e => `[${e.ts}] [${e.type}] [${e.result}] ${e.detail}`).join('\n')}
+
+================================================================================
+END OF TECHNICAL REPORT
+================================================================================`;
+  } else {
+    content = `
+================================================================================
+       FIREWALLSIM PRO — COMPLIANCE & GOVERNANCE REPORT
+================================================================================
+Generated      : ${ts}
+Classification : CONFIDENTIAL — AUDIT EVIDENCE
+Reference      : FSP-COMP-${Date.now()}
+Frameworks     : ISO 27001:2022 | PCI-DSS v4.0 | NIST CSF 2.0 | MAS TRM
+
+This document serves as audit evidence for regulatory compliance reviews and
+may be submitted to internal audit, external auditors, and regulators.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISO 27001:2022 CONTROL EVIDENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Control A.13.1.1 — Network Controls
+    Evidence: ${rules.length} firewall rules configured and managed.
+    Status  : ${rules.length > 0 ? 'COMPLIANT' : 'NON-COMPLIANT'}
+
+  Control A.12.4.1 — Event Logging
+    Evidence: ${auditLog.length} audit log entries recorded.
+    Status  : ${auditLog.length > 0 ? 'COMPLIANT' : 'NON-COMPLIANT'}
+
+  Control A.9.4.2 — Secure Log-on (Access Control)
+    Evidence: DENY rules present for sensitive ports (SSH/RDP/FTP).
+    Status  : ${rules.some(r=>r.action==='DENY'&&['22','3389','21'].includes(r.dst_port)) ? 'COMPLIANT' : 'REVIEW REQUIRED'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PCI-DSS v4.0 REQUIREMENT EVIDENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Requirement 1.2 — Firewall restricts inbound/outbound traffic
+    Evidence: ${rules.filter(r=>r.direction==='INBOUND').length} inbound rules, ${rules.filter(r=>r.direction==='OUTBOUND').length} outbound rules.
+    Status  : ${rules.length > 2 ? 'COMPLIANT' : 'NON-COMPLIANT'}
+
+  Requirement 1.3 — Prohibit direct public access
+    Evidence: Default deny rule ${rules.some(r=>r.priority>900&&r.action==='DENY') ? 'present' : 'NOT present'}.
+    Status  : ${rules.some(r=>r.priority>900&&r.action==='DENY') ? 'COMPLIANT' : 'NON-COMPLIANT'}
+
+  Requirement 10.2 — Audit logs capture all access
+    Evidence: ${auditLog.length} events logged in audit trail.
+    Status  : ${auditLog.length > 0 ? 'COMPLIANT' : 'NON-COMPLIANT'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NIST CSF 2.0 FUNCTION MAPPING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  IDENTIFY  (ID) : Asset inventory reflected in ${rules.length} rules. ✓
+  PROTECT   (PR) : ${deny} deny rules enforce access control. ✓
+  DETECT    (DE) : ${rules.filter(r=>r.action==='LOG').length} log rules + ${auditLog.length} audit entries. ✓
+  RESPOND   (RS) : Simulation capability enables incident testing. ✓
+  RECOVER   (RC) : Rule export/backup capability available. ✓
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUDITOR ATTESTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I attest that this report accurately reflects the firewall configuration and
+simulation results as of the date stated above, and that the audit log has
+been maintained with integrity throughout the review period.
+
+Signature : ___________________________
+Name      : ___________________________
+Date      : ${ts.split(' ')[0]}
+Role      : Information Security Analyst
+
+================================================================================
+END OF COMPLIANCE REPORT — AUDIT EVIDENCE DOCUMENT
+================================================================================`;
+  }
+
+  reportContent = content;
+  reportFilename = `firewallsim_${type}_report.${fmt}`;
+
+  document.getElementById('reportPreview').textContent = content;
+  document.getElementById('reportPreviewTitle').textContent = `📄 Preview — ${type.charAt(0).toUpperCase()+type.slice(1)} Report`;
+  document.getElementById('downloadReportBtn').style.display = 'block';
+
+  addAuditLog('REPORT_GEN', `${type.toUpperCase()} report generated (${fmt.toUpperCase()})`, 'SUCCESS');
+}
+
+function downloadReportPreview() {
+  if (reportFilename.endsWith('.csv')) {
+    // CSV version: pipe the text as csv
+    downloadBlob(reportContent, reportFilename, 'text/csv');
+  } else {
+    downloadBlob(reportContent, reportFilename, 'text/plain');
+  }
+}
+
+// ===================== UTILS =====================
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], {type: mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+</script>
+</body>
+</html>
